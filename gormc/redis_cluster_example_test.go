@@ -132,4 +132,3 @@ func ExampleNewConn_multipleModels() {
 
 	_, _, _ = userCache, orderCache, productCache
 }
-
