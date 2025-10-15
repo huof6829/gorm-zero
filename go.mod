@@ -1,4 +1,4 @@
-module github.com/SpectatorNan/gorm-zero
+module github.com/huof6829/gorm-zero
 
 go 1.23.0
 
@@ -69,4 +69,4 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
-//replace github.com/zeromicro/go-zero v1.4.2 => github.com/SpectatorNan/go-zero v1.2.5-0.20221201151248-db1f09d9826d
+//replace github.com/zeromicro/go-zero v1.4.2 => github.com/huof6829/go-zero v1.2.5-0.20221201151248-db1f09d9826d

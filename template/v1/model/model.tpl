@@ -2,7 +2,7 @@ package {{.pkg}}
 {{if .withCache}}
 import (
 	"time"
-	"github.com/SpectatorNan/gorm-zero/gormc"
+	"github.com/huof6829/gorm-zero/gormc"
 	"gorm.io/gorm"
 )
 {{else}}

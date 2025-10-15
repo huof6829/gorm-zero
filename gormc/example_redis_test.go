@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/SpectatorNan/gorm-zero/gormc"
+	"github.com/huof6829/gorm-zero/gormc"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -26,13 +26,13 @@ func ExampleNewConn() {
 	// Configure Redis with DB selection
 	redisConf := gormc.RedisConfig{
 		Addr:         "127.0.0.1:6379",
-		Password:     "",                  // no password
-		DB:           0,                   // use database 0
-		PoolSize:     10,                  // connection pool size
-		MinIdleConns: 2,                   // minimum idle connections
-		DialTimeout:  5 * time.Second,     // dial timeout
-		ReadTimeout:  3 * time.Second,     // read timeout
-		WriteTimeout: 3 * time.Second,     // write timeout
+		Password:     "",              // no password
+		DB:           0,               // use database 0
+		PoolSize:     10,              // connection pool size
+		MinIdleConns: 2,               // minimum idle connections
+		DialTimeout:  5 * time.Second, // dial timeout
+		ReadTimeout:  3 * time.Second, // read timeout
+		WriteTimeout: 3 * time.Second, // write timeout
 	}
 
 	// Create cached connection with 1 hour expiry
@@ -87,4 +87,3 @@ func ExampleNewConn_multipleDB() {
 	_, _ = userCache, orderCache
 	// Now you can use userCache and orderCache with different Redis databases
 }
-

@@ -131,7 +131,7 @@ redisClient := cache.GetClient() // 返回 *redis.Client
 ```go
 import (
     "time"
-    "github.com/SpectatorNan/gorm-zero/gormc"
+    "github.com/huof6829/gorm-zero/gormc"
 )
 
 // 配置 Redis

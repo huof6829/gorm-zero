@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/SpectatorNan/gorm-zero/gormc"
+	"github.com/huof6829/gorm-zero/gormc"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )

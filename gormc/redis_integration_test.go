@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SpectatorNan/gorm-zero/gormc"
 	"github.com/alicebob/miniredis/v2"
+	"github.com/huof6829/gorm-zero/gormc"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -490,4 +490,3 @@ func ExampleCachedConn_fullWorkflow() {
 
 	fmt.Printf("User: %s\n", result.Name)
 }
-

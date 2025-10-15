@@ -23,7 +23,7 @@ gorm-zero 现在**完全支持** Redis Cluster 模式，同时保持对单节点
 ```go
 import (
     "time"
-    "github.com/SpectatorNan/gorm-zero/gormc"
+    "github.com/huof6829/gorm-zero/gormc"
 )
 
 redisConf := gormc.RedisConfig{

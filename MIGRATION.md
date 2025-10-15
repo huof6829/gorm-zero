@@ -36,7 +36,7 @@ type Config struct {
 ```go
 import (
     "time"
-    "github.com/SpectatorNan/gorm-zero/gormc"
+    "github.com/huof6829/gorm-zero/gormc"
 )
 
 type Config struct {
@@ -74,7 +74,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 ```go
 import (
     "time"
-    "github.com/SpectatorNan/gorm-zero/gormc"
+    "github.com/huof6829/gorm-zero/gormc"
 )
 
 func NewServiceContext(c config.Config) *ServiceContext {

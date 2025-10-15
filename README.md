@@ -14,7 +14,7 @@ A go-zero gorm extension with native Redis support. If you use go-zero, and you 
 
 - Add the dependency
 ```shell
-go get github.com/SpectatorNan/gorm-zero
+go get github.com/huof6829/gorm-zero
 ```
 - Replace `template/model` in your project with `gorm-zero/template/v1/model`
 - Generate
@@ -29,7 +29,7 @@ Currently we support two databases: MySQL and PostgreSQL. For example:
 * Config
 ```go
 import (
-    "github.com/SpectatorNan/gorm-zero/gormc/config/mysql"
+    "github.com/huof6829/gorm-zero/gormc/config/mysql"
 )
 type Config struct {
     Mysql mysql.Mysql
@@ -39,7 +39,7 @@ type Config struct {
 * Initialization
 ```go
 import (
-    "github.com/SpectatorNan/gorm-zero/gormc/config/mysql"
+    "github.com/huof6829/gorm-zero/gormc/config/mysql"
 )
 func NewServiceContext(c config.Config) *ServiceContext {
     db, err := mysql.Connect(c.Mysql)
@@ -54,7 +54,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 * Config
 ```go
 import (
-    "github.com/SpectatorNan/gorm-zero/gormc/config/pg"
+    "github.com/huof6829/gorm-zero/gormc/config/pg"
 )
 type Config struct {
     PgSql pg.PgSql
@@ -65,7 +65,7 @@ type Config struct {
 * Initialization
 ```go
 import (
-    "github.com/SpectatorNan/gorm-zero/gormc/config/pg"
+    "github.com/huof6829/gorm-zero/gormc/config/pg"
 )
 func NewServiceContext(c config.Config) *ServiceContext {
     db, err := pg.Connect(c.PgSql)
@@ -82,7 +82,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 ```go
 import (
     "time"
-    "github.com/SpectatorNan/gorm-zero/gormc"
+    "github.com/huof6829/gorm-zero/gormc"
     "gorm.io/gorm"
 )
 
@@ -233,4 +233,4 @@ err := m.QueryNoCacheCtx(ctx, func(conn *gorm.DB) error {
 - `Transact` / `TransactCtx` - Execute in transaction
 
 ## Examples
-- go zero model example link: [gorm-zero-example](https://github.com/SpectatorNan/gorm-zero-example)
+- go zero model example link: [gorm-zero-example](https://github.com/huof6829/gorm-zero-example)

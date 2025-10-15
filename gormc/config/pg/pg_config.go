@@ -3,12 +3,13 @@ package pg
 import (
 	"errors"
 	"fmt"
-	"github.com/SpectatorNan/gorm-zero/gormc/config"
-	"github.com/SpectatorNan/gorm-zero/gormc/plugins"
+	"time"
+
+	"github.com/huof6829/gorm-zero/gormc/config"
+	"github.com/huof6829/gorm-zero/gormc/plugins"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"time"
 )
 
 type PgSql struct {
@@ -22,7 +23,7 @@ type PgSql struct {
 	MaxIdleConns  int    `json:",default=10"`                               // 空闲中的最大连接数
 	MaxOpenConns  int    `json:",default=10"`                               // 打开到数据库的最大连接数
 	LogMode       string `json:",default=dev,options=dev|test|prod|silent"` // 是否开启Gorm全局日志
-	LogColorful   bool   `json:",default=false"`                             // 是否开启日志高亮
+	LogColorful   bool   `json:",default=false"`                            // 是否开启日志高亮
 	SlowThreshold int64  `json:",default=1000"`
 }
 
