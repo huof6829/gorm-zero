@@ -1,9 +1,9 @@
 package {{.pkg}}
 {{if .withCache}}
 import (
-	"github.com/zeromicro/go-zero/core/stores/cache"
+	"time"
+	"github.com/SpectatorNan/gorm-zero/gormc"
 	"gorm.io/gorm"
-	{{ if or (.gormCreatedAt) (.gormUpdatedAt) }} "time" {{ end }}
 )
 {{else}}
 import (
@@ -46,10 +46,24 @@ func (s *{{.upperStartCamelObject}}) BeforeUpdate(tx *gorm.DB) error {
 }
 {{ end }}
 // New{{.upperStartCamelObject}}Model returns a model for the database table.
-func New{{.upperStartCamelObject}}Model(conn *gorm.DB{{if .withCache}}, c cache.CacheConf{{end}}) {{.upperStartCamelObject}}Model {
-	return &custom{{.upperStartCamelObject}}Model{
-		default{{.upperStartCamelObject}}Model: new{{.upperStartCamelObject}}Model(conn{{if .withCache}}, c{{end}}),
+// For cached models, provide redisConf and cacheExpiry parameters.
+// Example:
+//   redisConf := gormc.RedisConfig{Addr: "127.0.0.1:6379", DB: 0}
+//   model, err := New{{.upperStartCamelObject}}Model(db, redisConf, time.Hour)
+func New{{.upperStartCamelObject}}Model(conn *gorm.DB{{if .withCache}}, redisConf gormc.RedisConfig, cacheExpiry time.Duration{{end}}) ({{.upperStartCamelObject}}Model, error) {
+	{{if .withCache}}defaultModel, err := new{{.upperStartCamelObject}}Model(conn, redisConf, cacheExpiry)
+	if err != nil {
+		return nil, err
 	}
+	return &custom{{.upperStartCamelObject}}Model{
+		default{{.upperStartCamelObject}}Model: defaultModel,
+	}, nil{{else}}defaultModel, err := new{{.upperStartCamelObject}}Model(conn)
+	if err != nil {
+		return nil, err
+	}
+	return &custom{{.upperStartCamelObject}}Model{
+		default{{.upperStartCamelObject}}Model: defaultModel,
+	}, nil{{end}}
 }
 {{if .withCache}}
 
