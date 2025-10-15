@@ -1,1 +1,1 @@
-{{.name}} {{if eq .name "DeletedAt"}}gorm.DeletedAt{{else}}{{.type}}{{end}} {{.tag}} {{if .hasComment}}// {{.comment}}{{end}}
+{{.name}} {{if eq .name "DeletedAt"}}gorm.DeletedAt{{else}}{{if eq .type "sql.NullString"}}*string{{else if eq .type "sql.NullInt64"}}*int64{{else if eq .type "sql.NullInt32"}}*int32{{else if eq .type "sql.NullFloat64"}}*float64{{else if eq .type "sql.NullBool"}}*bool{{else if eq .type "sql.NullTime"}}*time.Time{{else}}{{.type}}{{end}}{{end}} {{.tag}} {{if .hasComment}}// {{.comment}}{{end}}
