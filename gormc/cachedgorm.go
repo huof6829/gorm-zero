@@ -7,9 +7,6 @@ import (
 	"time"
 
 	"github.com/zeromicro/go-zero/core/mathx"
-	"github.com/zeromicro/go-zero/core/stores/cache"
-	"github.com/zeromicro/go-zero/core/stores/redis"
-	"github.com/zeromicro/go-zero/core/syncx"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -33,10 +30,6 @@ const expiryDeviation = 0.05
 var (
 	// ErrNotFound is an alias of gorm.ErrRecordNotFound.
 	ErrNotFound = gorm.ErrRecordNotFound
-
-	// can't use one SingleFlight per conn, because multiple conns may share the same cache key.
-	singleFlights = syncx.NewSingleFlight()
-	stats         = cache.NewStat("gorm")
 )
 
 type (
@@ -52,7 +45,7 @@ type (
 
 	CachedConn struct {
 		db                 *gorm.DB
-		cache              cache.Cache
+		cache              *RedisCache
 		unstableExpiryTime mathx.Unstable
 	}
 
@@ -61,25 +54,22 @@ type (
 	}
 )
 
-// NewConn returns a CachedConn with a redis cluster cache.
-func NewConn(db *gorm.DB, c cache.CacheConf, opts ...cache.Option) CachedConn {
-	cc := cache.New(c, singleFlights, stats, ErrNotFound, opts...)
-	return NewConnWithCache(db, cc)
+// NewConn returns a CachedConn with a redis cache.
+func NewConn(db *gorm.DB, redisConf RedisConfig, expiry time.Duration) (CachedConn, error) {
+	cache, err := NewRedisCache(redisConf, expiry)
+	if err != nil {
+		return CachedConn{}, err
+	}
+	return NewConnWithCache(db, cache), nil
 }
 
 // NewConnWithCache returns a CachedConn with a custom cache.
-func NewConnWithCache(db *gorm.DB, c cache.Cache) CachedConn {
+func NewConnWithCache(db *gorm.DB, c *RedisCache) CachedConn {
 	return CachedConn{
 		db:                 db,
 		cache:              c,
 		unstableExpiryTime: mathx.NewUnstable(expiryDeviation),
 	}
-}
-
-// NewNodeConn returns a CachedConn with a redis node cache.
-func NewNodeConn(db *gorm.DB, rds *redis.Redis, opts ...cache.Option) CachedConn {
-	cc := cache.NewNode(rds, singleFlights, stats, ErrNotFound, opts...)
-	return NewConnWithCache(db, cc)
 }
 
 // DelCache deletes cache with keys.
@@ -163,14 +153,16 @@ func (cc CachedConn) QueryRowIndexCtx(ctx context.Context, v interface{}, key st
 	var primaryKey interface{}
 	var found bool
 
-	if err = cc.cache.TakeWithExpireCtx(ctx, &primaryKey, key, func(val interface{}, expire time.Duration) error {
+	queryFunc := func(val interface{}) error {
 		primaryKey, err = indexQuery(cc.db.WithContext(ctx), v)
 		if err != nil {
 			return err
 		}
 		found = true
-		return cc.cache.SetWithExpireCtx(ctx, keyer(primaryKey), v, expire+cacheSafeGapBetweenIndexAndPrimary)
-	}); err != nil {
+		return cc.cache.SetWithExpireCtx(ctx, keyer(primaryKey), v, cc.cache.expiry+cacheSafeGapBetweenIndexAndPrimary)
+	}
+
+	if err = cc.cache.TakeWithExpireCtx(ctx, &primaryKey, key, queryFunc, cc.cache.expiry); err != nil {
 		return err
 	}
 	if found {
