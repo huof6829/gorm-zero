@@ -45,7 +45,7 @@ if err != nil {
 }
 ```
 
-### 带缓存版本（原生 Redis + DB 选择）
+### 带缓存版本（原生 Redis + DB 选择 + Cluster 支持）
 
 ```go
 func NewUserModel(
@@ -53,11 +53,11 @@ func NewUserModel(
     redisConf gormc.RedisConfig, 
     cacheExpiry time.Duration,
 ) (UserModel, error) {
-    // 支持原生 Redis 和 DB 选择
+    // 支持单节点 Redis（DB 选择）和 Redis Cluster
 }
 ```
 
-**使用方式：**
+**使用方式（单节点）：**
 ```go
 import (
     "time"
@@ -98,29 +98,85 @@ if err != nil {
 }
 ```
 
-## 多数据库缓存示例
+**使用方式（Redis Cluster）：**
+```go
+import (
+    "time"
+    "github.com/SpectatorNan/gorm-zero/gormc"
+    "gorm.io/driver/mysql"
+    "gorm.io/gorm"
+)
 
-不同的 Model 可以使用不同的 Redis 数据库：
+// 1. 连接数据库
+dsn := "user:password@tcp(127.0.0.1:3306)/database?charset=utf8mb4"
+db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+if err != nil {
+    panic(err)
+}
+
+// 2. 配置 Redis Cluster
+redisConf := gormc.RedisConfig{
+    ClusterAddrs: []string{
+        "127.0.0.1:7000",
+        "127.0.0.1:7001",
+        "127.0.0.1:7002",
+        "127.0.0.1:7003",
+        "127.0.0.1:7004",
+        "127.0.0.1:7005",
+    },
+    Password:     "",              // Cluster 密码
+    PoolSize:     50,              // Cluster 建议更大的连接池
+    MinIdleConns: 10,
+    DialTimeout:  10 * time.Second,
+    ReadTimeout:  5 * time.Second,
+    WriteTimeout: 5 * time.Second,
+}
+
+// 3. 创建 Model（使用 Cluster，缓存1小时）
+userModel, err := NewUserModel(db, redisConf, time.Hour)
+if err != nil {
+    panic(err)
+}
+
+// 4. 使用 Model（与单节点完全相同）
+user, err := userModel.FindOne(ctx, 1)
+if err != nil {
+    // 处理错误
+}
+```
+
+**注意：**
+- Redis Cluster **不支持** DB 选择（DB 参数会被忽略）
+- Cluster 建议使用更大的连接池（PoolSize: 50-100）
+- 使用方式与单节点完全相同，只是配置不同
+
+## 多数据库/Cluster 混合缓存示例
+
+不同的 Model 可以使用不同的 Redis 配置（单节点 + Cluster 混合）：
 
 ```go
-// 用户缓存 - 使用 Redis DB 0，缓存 1 小时
+// 用户缓存 - 使用单节点 Redis DB 0，缓存 1 小时
 userRedisConf := gormc.RedisConfig{
     Addr: "127.0.0.1:6379",
     DB:   0,
 }
 userModel, _ := NewUserModel(db, userRedisConf, time.Hour)
 
-// 订单缓存 - 使用 Redis DB 1，缓存 30 分钟
+// 订单缓存 - 使用单节点 Redis DB 1，缓存 30 分钟
 orderRedisConf := gormc.RedisConfig{
     Addr: "127.0.0.1:6379",
     DB:   1,
 }
 orderModel, _ := NewOrderModel(db, orderRedisConf, 30*time.Minute)
 
-// 商品缓存 - 使用 Redis DB 2，缓存 2 小时
+// 商品缓存 - 使用 Redis Cluster（高并发场景），缓存 2 小时
 productRedisConf := gormc.RedisConfig{
-    Addr: "127.0.0.1:6379",
-    DB:   2,
+    ClusterAddrs: []string{
+        "127.0.0.1:7000",
+        "127.0.0.1:7001",
+        "127.0.0.1:7002",
+    },
+    PoolSize: 50, // Cluster 需要更大的连接池
 }
 productModel, _ := NewProductModel(db, productRedisConf, 2*time.Hour)
 ```
@@ -221,16 +277,26 @@ func InitModels(c Config) error {
 
 ```go
 type RedisConfig struct {
-    Addr         string        // Redis 服务器地址，格式：host:port
+    // 单节点模式配置
+    Addr         string        // Redis 服务器地址（单节点），格式：host:port
     Password     string        // Redis 密码（如果有）
-    DB           int           // Redis 数据库索引（0-15）
-    PoolSize     int           // 连接池最大连接数（默认：10）
+    DB           int           // Redis 数据库索引（0-15，仅单节点）
+    
+    // Cluster 模式配置
+    ClusterAddrs []string      // Redis Cluster 地址列表（设置后使用 Cluster 模式）
+    
+    // 通用配置
+    PoolSize     int           // 连接池最大连接数（默认：10，Cluster 建议 50+）
     MinIdleConns int           // 最小空闲连接数（默认：2）
     DialTimeout  time.Duration // 连接超时（默认：5秒）
     ReadTimeout  time.Duration // 读取超时（默认：3秒）
     WriteTimeout time.Duration // 写入超时（默认：3秒）
 }
 ```
+
+**模式选择规则：**
+- 如果设置了 `ClusterAddrs`，则使用 **Redis Cluster 模式**
+- 否则使用 **单节点模式**（需要设置 `Addr`）
 
 ### 默认值
 
