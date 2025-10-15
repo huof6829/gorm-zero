@@ -17,9 +17,15 @@ var (
 
 // RedisConfig is the redis configuration.
 type RedisConfig struct {
-	Addr         string        // Redis server address
-	Password     string        // Redis password
-	DB           int           // Redis database index
+	// 单节点模式配置
+	Addr     string // Redis server address (single node)
+	Password string // Redis password
+	DB       int    // Redis database index (only for single node, cluster doesn't support DB)
+
+	// Cluster 模式配置
+	ClusterAddrs []string // Redis cluster addresses (e.g., []string{"localhost:7000", "localhost:7001"})
+
+	// 通用配置
 	PoolSize     int           // Connection pool size
 	MinIdleConns int           // Minimum idle connections
 	DialTimeout  time.Duration // Dial timeout
@@ -28,14 +34,19 @@ type RedisConfig struct {
 }
 
 // RedisCache is a cache implementation based on native go-redis.
+// Supports both single node and cluster mode.
 type RedisCache struct {
-	client        *redis.Client
+	client        redis.Cmdable // Universal client interface (supports both Client and ClusterClient)
 	notFoundError error
 	expiry        time.Duration
 }
 
 // NewRedisCache creates a new RedisCache instance.
+// Supports both single node and cluster mode:
+// - Single node: set Addr field
+// - Cluster: set ClusterAddrs field (Addr will be ignored)
 func NewRedisCache(conf RedisConfig, expiry time.Duration) (*RedisCache, error) {
+	// Set default values
 	if conf.DialTimeout == 0 {
 		conf.DialTimeout = 5 * time.Second
 	}
@@ -52,16 +63,38 @@ func NewRedisCache(conf RedisConfig, expiry time.Duration) (*RedisCache, error) 
 		conf.MinIdleConns = 2
 	}
 
-	client := redis.NewClient(&redis.Options{
-		Addr:         conf.Addr,
-		Password:     conf.Password,
-		DB:           conf.DB,
-		PoolSize:     conf.PoolSize,
-		MinIdleConns: conf.MinIdleConns,
-		DialTimeout:  conf.DialTimeout,
-		ReadTimeout:  conf.ReadTimeout,
-		WriteTimeout: conf.WriteTimeout,
-	})
+	var client redis.Cmdable
+
+	// Determine mode: Cluster or Single Node
+	if len(conf.ClusterAddrs) > 0 {
+		// Redis Cluster Mode
+		clusterClient := redis.NewClusterClient(&redis.ClusterOptions{
+			Addrs:        conf.ClusterAddrs,
+			Password:     conf.Password,
+			PoolSize:     conf.PoolSize,
+			MinIdleConns: conf.MinIdleConns,
+			DialTimeout:  conf.DialTimeout,
+			ReadTimeout:  conf.ReadTimeout,
+			WriteTimeout: conf.WriteTimeout,
+		})
+		client = clusterClient
+	} else {
+		// Single Node Mode
+		if conf.Addr == "" {
+			return nil, fmt.Errorf("redis config error: either Addr or ClusterAddrs must be set")
+		}
+		singleClient := redis.NewClient(&redis.Options{
+			Addr:         conf.Addr,
+			Password:     conf.Password,
+			DB:           conf.DB,
+			PoolSize:     conf.PoolSize,
+			MinIdleConns: conf.MinIdleConns,
+			DialTimeout:  conf.DialTimeout,
+			ReadTimeout:  conf.ReadTimeout,
+			WriteTimeout: conf.WriteTimeout,
+		})
+		client = singleClient
+	}
 
 	// Test connection
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -152,10 +185,19 @@ func (c *RedisCache) TakeWithExpireCtx(ctx context.Context, v interface{}, key s
 
 // Close closes the redis client.
 func (c *RedisCache) Close() error {
-	return c.client.Close()
+	// Type assert to get the Close method
+	switch client := c.client.(type) {
+	case *redis.Client:
+		return client.Close()
+	case *redis.ClusterClient:
+		return client.Close()
+	default:
+		return nil
+	}
 }
 
 // GetClient returns the underlying redis client.
-func (c *RedisCache) GetClient() *redis.Client {
+// Returns redis.Cmdable interface which can be either *redis.Client or *redis.ClusterClient
+func (c *RedisCache) GetClient() redis.Cmdable {
 	return c.client
 }

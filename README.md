@@ -2,11 +2,13 @@
 A go-zero gorm extension with native Redis support. If you use go-zero, and you want to use GORM with native Redis client. You can use this extension.
 
 ## Features
-- Native Redis support (github.com/redis/go-redis/v9)
-- Support for Redis DB selection
-- Connection pool configuration
-- Custom cache expiration
-- Compatible with GORM v2
+- ✅ Native Redis support (github.com/redis/go-redis/v9)
+- ✅ **Redis Cluster support** (single node & cluster mode)
+- ✅ Redis DB selection (0-15, single node only)
+- ✅ Connection pool configuration
+- ✅ Custom cache expiration
+- ✅ High availability with automatic failover (cluster mode)
+- ✅ Compatible with GORM v2
 
 ## Installation
 
@@ -76,7 +78,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 ## Redis Configuration
 
-### Basic Configuration with DB Selection
+### Single Node Redis (with DB Selection)
 ```go
 import (
     "time"
@@ -103,7 +105,38 @@ if err != nil {
 }
 ```
 
-### Using Multiple Redis Databases
+### Redis Cluster (High Availability)
+
+```go
+// Configure Redis Cluster
+redisConf := gormc.RedisConfig{
+    ClusterAddrs: []string{                    // Cluster node addresses
+        "127.0.0.1:7000",
+        "127.0.0.1:7001",
+        "127.0.0.1:7002",
+        "127.0.0.1:7003",
+        "127.0.0.1:7004",
+        "127.0.0.1:7005",
+    },
+    Password:     "",                          // Cluster password
+    PoolSize:     50,                          // Larger pool for cluster
+    MinIdleConns: 10,
+    DialTimeout:  10 * time.Second,
+    ReadTimeout:  5 * time.Second,
+    WriteTimeout: 5 * time.Second,
+}
+
+// Create cached connection with cluster
+cachedConn, err := gormc.NewConn(db, redisConf, time.Hour)
+if err != nil {
+    panic(err)
+}
+```
+
+**Note:** Redis Cluster does not support DB selection. Use key prefixes for logical separation.
+
+### Using Multiple Redis Databases (Single Node)
+
 ```go
 // Use Redis DB 0 for user cache
 userRedisConf := gormc.RedisConfig{
@@ -118,6 +151,21 @@ orderRedisConf := gormc.RedisConfig{
     DB:   1, // database 1
 }
 orderCache, _ := gormc.NewConn(db, orderRedisConf, 30*time.Minute)
+```
+
+### Mixed Mode (Single Node + Cluster)
+
+```go
+// User cache: Single node with DB selection
+userCache, _ := gormc.NewConn(db, gormc.RedisConfig{
+    Addr: "127.0.0.1:6379",
+    DB:   0,
+}, time.Hour)
+
+// Product cache: Cluster for high concurrency
+productCache, _ := gormc.NewConn(db, gormc.RedisConfig{
+    ClusterAddrs: []string{"node1:6379", "node2:6379", "node3:6379"},
+}, time.Hour)
 ```
 
 ## Quick Start
