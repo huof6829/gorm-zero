@@ -1,7 +1,6 @@
 package {{.pkg}}
 {{if .withCache}}
 import (
-	"time"
 	"github.com/huof6829/gorm-zero/gormc"
 	"gorm.io/gorm"
 )
@@ -45,30 +44,14 @@ func (s *{{.upperStartCamelObject}}) BeforeUpdate(tx *gorm.DB) error {
 	return nil
 }
 {{ end }}
-// New{{.upperStartCamelObject}}Model returns a model for the database table.
-// For cached models, provide redisConf and cacheExpiry parameters.
-// 
-// Single node example:
-//   redisConf := gormc.RedisConfig{Addr: "127.0.0.1:6379", DB: 0}
-//   model, err := New{{.upperStartCamelObject}}Model(db, redisConf, time.Hour)
-//
-// Cluster example:
-//   redisConf := gormc.RedisConfig{ClusterAddrs: []string{"node1:6379", "node2:6379", "node3:6379"}}
-//   model, err := New{{.upperStartCamelObject}}Model(db, redisConf, time.Hour)
-func New{{.upperStartCamelObject}}Model(conn *gorm.DB{{if .withCache}}, redisConf gormc.RedisConfig, cacheExpiry time.Duration{{end}}) ({{.upperStartCamelObject}}Model, error) {
-	{{if .withCache}}defaultModel, err := new{{.upperStartCamelObject}}Model(conn, redisConf, cacheExpiry)
-	if err != nil {
-		return nil, err
-	}
+func New{{.upperStartCamelObject}}Model(conn *gorm.DB{{if .withCache}}, cache *gormc.RedisCache{{end}}) {{.upperStartCamelObject}}Model {
+	{{if .withCache}}defaultModel := new{{.upperStartCamelObject}}Model(conn, cache)
 	return &custom{{.upperStartCamelObject}}Model{
 		default{{.upperStartCamelObject}}Model: defaultModel,
-	}, nil{{else}}defaultModel, err := new{{.upperStartCamelObject}}Model(conn)
-	if err != nil {
-		return nil, err
-	}
+	}{{else}}defaultModel := new{{.upperStartCamelObject}}Model(conn)
 	return &custom{{.upperStartCamelObject}}Model{
 		default{{.upperStartCamelObject}}Model: defaultModel,
-	}, nil{{end}}
+	}{{end}}
 }
 {{if .withCache}}
 

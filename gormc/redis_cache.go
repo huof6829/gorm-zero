@@ -19,6 +19,7 @@ var (
 type RedisConfig struct {
 	// 单节点模式配置
 	Addr     string // Redis server address (single node)
+	Username string // Redis username (optional, for ACL authentication)
 	Password string // Redis password
 	DB       int    // Redis database index (only for single node, cluster doesn't support DB)
 
@@ -70,6 +71,7 @@ func NewRedisCache(conf RedisConfig, expiry time.Duration) (*RedisCache, error) 
 		// Redis Cluster Mode
 		clusterClient := redis.NewClusterClient(&redis.ClusterOptions{
 			Addrs:        conf.ClusterAddrs,
+			Username:     conf.Username,
 			Password:     conf.Password,
 			PoolSize:     conf.PoolSize,
 			MinIdleConns: conf.MinIdleConns,
@@ -85,6 +87,7 @@ func NewRedisCache(conf RedisConfig, expiry time.Duration) (*RedisCache, error) 
 		}
 		singleClient := redis.NewClient(&redis.Options{
 			Addr:         conf.Addr,
+			Username:     conf.Username,
 			Password:     conf.Password,
 			DB:           conf.DB,
 			PoolSize:     conf.PoolSize,
@@ -200,4 +203,15 @@ func (c *RedisCache) Close() error {
 // Returns redis.Cmdable interface which can be either *redis.Client or *redis.ClusterClient
 func (c *RedisCache) GetClient() redis.Cmdable {
 	return c.client
+}
+
+// NewRedisCacheWithClient creates a RedisCache from an existing redis client.
+// This is useful when you want to reuse an existing redis connection instead of creating a new one.
+// The client can be either *redis.Client or *redis.ClusterClient.
+func NewRedisCacheWithClient(client redis.Cmdable, expiry time.Duration) *RedisCache {
+	return &RedisCache{
+		client:        client,
+		notFoundError: ErrNotFound,
+		expiry:        expiry,
+	}
 }
